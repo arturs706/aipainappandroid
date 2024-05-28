@@ -81,3 +81,5 @@ lint/tmp/
 
 # Android Profiling
 *.hprof
+./app/src/main/res/values/strings.xml
+
