@@ -1,0 +1,7 @@
+<resources>
+<string name="app_name">aipainapp</string>
+<string name="gcp_id">696034599107-i40mfvpvvdltbn1hr2bhlg74n8l11n54.apps.googleusercontent.com</string>
+<string name="facebook_app_id">859316752311273</string>
+<string name="fb_login_protocol_scheme">fb859316752311273</string>
+<string name="facebook_client_token">ff1cc6c5e4a51b59231db188ecb9e63b</string>
+</resources>
