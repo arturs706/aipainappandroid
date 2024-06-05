@@ -1,6 +1,7 @@
 package uk.co.aipainapp.presentation.view
 
 import AuthResultContract
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -33,17 +34,20 @@ import com.facebook.login.LoginManager
 import com.facebook.login.LoginResult
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import kotlinx.coroutines.launch
 import org.koin.androidx.compose.get
 import uk.co.aipainapp.R
 import uk.co.aipainapp.domain.model.Screen
+import uk.co.aipainapp.presentation.components.ModalComponent.Companion.Modal
 import uk.co.aipainapp.presentation.view.theme.Salmon
 import uk.co.aipainapp.presentation.view.theme.WhiteCustom
 import uk.co.aipainapp.presentation.viewmodel.FacebookLoginViewModel
 import uk.co.aipainapp.presentation.viewmodel.GoogleLoginViewModel
+import uk.co.aipainapp.presentation.viewmodel.LoginViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LoginScreen(navController: NavController, googleLoginViewModel: GoogleLoginViewModel = get(), facebookLoginViewModel: FacebookLoginViewModel = get()) {
+fun LoginScreen(navController: NavController, googleLoginViewModel: GoogleLoginViewModel = get(), facebookLoginViewModel: FacebookLoginViewModel = get(), loginViewModel: LoginViewModel = get()) {
     val context = LocalContext.current
     val googleSignInOptions = remember {
         GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
@@ -54,17 +58,24 @@ fun LoginScreen(navController: NavController, googleLoginViewModel: GoogleLoginV
         GoogleSignIn.getClient(context, googleSignInOptions)
     }
 
+    val coroutineScope = rememberCoroutineScope()
+
     val googleLauncher = rememberLauncherForActivityResult(
         contract = AuthResultContract()
     ) { result ->
-        googleLoginViewModel.handleGoogleSignInResult(result)
+        coroutineScope.launch {
+            googleLoginViewModel.handleGoogleSignInResult(result)
+        }
     }
-
-    val username by googleLoginViewModel.username
-    val password by googleLoginViewModel.password
-    val passwordVisibility by googleLoginViewModel.passwordVisibility
-
-
+    val username by loginViewModel.username
+    val password by loginViewModel.password
+    val passwordVisibility by loginViewModel.passwordVisibility
+    val loginResponse by loginViewModel.loginResponse
+    val loginErrorResponse by loginViewModel.loginErrorResponse
+    val googleLoginResponse by googleLoginViewModel.loginResponse
+    val googleLoginErrorResponse by googleLoginViewModel.loginErrorResponse
+    val facebookLoginResponse by facebookLoginViewModel.loginResponse
+    val facebookLoginErrorResponse by facebookLoginViewModel.loginErrorResponse
     val callbackManager = remember {
         CallbackManager.Factory.create()
     }
@@ -72,21 +83,90 @@ fun LoginScreen(navController: NavController, googleLoginViewModel: GoogleLoginV
     val fbLauncher = rememberLauncherForActivityResult(
         LoginManager.getInstance().createLogInActivityResultContract(callbackManager)
     ) { result ->
-        LoginManager.getInstance().onActivityResult(
-            result.resultCode,
-            result.data,
-            object: FacebookCallback<LoginResult> {
-                override fun onSuccess(result: LoginResult) {
-                    facebookLoginViewModel.handleLoginResult(result.accessToken)
+        coroutineScope.launch {
+            LoginManager.getInstance().onActivityResult(
+                result.resultCode,
+                result.data,
+                object: FacebookCallback<LoginResult> {
+                    override fun onSuccess(result: LoginResult) {
+                        coroutineScope.launch {
+                            facebookLoginViewModel.handleLoginResult(result.accessToken)
+                        }
+                    }
+                    override fun onCancel() {
+                        // Handle cancel case
+                    }
+                    override fun onError(error: FacebookException) {
+                        // Handle error case
+                    }
                 }
-                override fun onCancel() {
-                }
-                override fun onError(error: FacebookException) {
-                }
+            )
+        }
+    }
+    Log.e("LOGINRESPONSE", loginResponse.toString())
+
+    if (loginResponse != null) {
+        Modal(
+            title = "Login Successful",
+            message = "You have successfully logged in with email: ${loginResponse!!.email}",
+            onDismiss = { loginViewModel.loginResponse.value = null },
+            onConfirm = {
+                loginViewModel.loginResponse.value = null
+                navController.navigate(Screen.MainScreen.route)
             }
         )
     }
 
+    if (loginErrorResponse != null) {
+        Modal(
+            title = "Login Error",
+            message = loginErrorResponse!!.message ?: "An unknown error occurred",
+            onDismiss = { loginViewModel.loginErrorResponse.value = null },
+            onConfirm = { loginViewModel.loginErrorResponse.value = null }
+        )
+    }
+
+    if (googleLoginResponse != null){
+        Modal(
+            title = "Login Successful",
+            message = "You have successfully logged in with email: ${googleLoginResponse!!.email}",
+            onDismiss = { googleLoginViewModel.loginResponse.value = null },
+            onConfirm = {
+                googleLoginViewModel.loginResponse.value = null
+                navController.navigate(Screen.MainScreen.route)
+            }
+        )
+    }
+
+    if (googleLoginErrorResponse != null){
+        Modal(
+            title = "Login Error",
+            message = googleLoginErrorResponse!!.message ?: "An unknown error occurred",
+            onDismiss = { googleLoginViewModel.loginErrorResponse.value = null },
+            onConfirm = { googleLoginViewModel.loginErrorResponse.value = null }
+        )
+    }
+
+    if (facebookLoginResponse != null){
+        Modal(
+            title = "Login Successful",
+            message = "You have successfully logged in with email: ${facebookLoginResponse!!.email}",
+            onDismiss = { facebookLoginViewModel.loginResponse.value = null },
+            onConfirm = {
+                facebookLoginViewModel.loginResponse.value = null
+                navController.navigate(Screen.MainScreen.route)
+            }
+        )
+    }
+
+    if (facebookLoginErrorResponse != null){
+        Modal(
+            title = "Login Error",
+            message = facebookLoginErrorResponse!!.message ?: "An unknown error occurred",
+            onDismiss = { facebookLoginViewModel.loginErrorResponse.value = null },
+            onConfirm = { facebookLoginViewModel.loginErrorResponse.value = null }
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -127,7 +207,7 @@ fun LoginScreen(navController: NavController, googleLoginViewModel: GoogleLoginV
                     .fillMaxWidth()
                     .padding(top = 20.dp, end = 70.dp),
                 label = { Text("Email") },
-                onValueChange = { googleLoginViewModel.onUsernameChange(it) },
+                onValueChange = { loginViewModel.onUsernameChange(it) },
                 singleLine = true,
                 colors = TextFieldDefaults.outlinedTextFieldColors(
                     focusedBorderColor = Salmon,
@@ -138,7 +218,7 @@ fun LoginScreen(navController: NavController, googleLoginViewModel: GoogleLoginV
             )
             OutlinedTextField(
                 value = password,
-                onValueChange = { googleLoginViewModel.onPasswordChange(it) },
+                onValueChange = { loginViewModel.onPasswordChange(it) },
                 label = { Text("Password") },
                 visualTransformation = if (passwordVisibility) PasswordVisualTransformation() else VisualTransformation.None,
                 modifier = Modifier
@@ -146,7 +226,7 @@ fun LoginScreen(navController: NavController, googleLoginViewModel: GoogleLoginV
                     .padding(top = 20.dp, end = 70.dp),
                 trailingIcon = {
                     IconButton(
-                        onClick = { googleLoginViewModel.togglePasswordVisibility() },
+                        onClick = { loginViewModel.togglePasswordVisibility() },
                         modifier = Modifier.padding(end = 8.dp)
                     ) {
                         Icon(
@@ -182,7 +262,18 @@ fun LoginScreen(navController: NavController, googleLoginViewModel: GoogleLoginV
                 )
             }
             Button(
-                onClick = { navController.navigate(Screen.HomeScreen.route) },
+                onClick = {
+                    loginViewModel.login()
+                    when {
+                        loginViewModel.isLoading.value -> {
+                        }
+                        loginViewModel.errorMessage.value.isNotEmpty() -> {
+                        }
+                        loginViewModel.loginResponse.value != null -> {
+                            navController.navigate(Screen.MainScreen.route)
+                        }
+                    }
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 18.dp, end = 70.dp)
@@ -209,7 +300,7 @@ fun LoginScreen(navController: NavController, googleLoginViewModel: GoogleLoginV
                     text = AnnotatedString("Sign up"),
                     modifier = Modifier.padding(start = 10.dp),
                     onClick = {
-                        navController.navigate(Screen.HomeScreen.route)
+                        navController.navigate(Screen.MainScreen.route)
                     },
                 )
             }
@@ -259,3 +350,4 @@ fun LoginScreen(navController: NavController, googleLoginViewModel: GoogleLoginV
         }
     }
 }
+

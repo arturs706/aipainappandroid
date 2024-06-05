@@ -10,8 +10,11 @@ import androidx.navigation.compose.rememberNavController
 import uk.co.aipainapp.domain.model.Screen
 import uk.co.aipainapp.presentation.view.HomeScreen
 import uk.co.aipainapp.presentation.view.LoginScreen
+import uk.co.aipainapp.presentation.view.MainScreen
 import uk.co.aipainapp.presentation.view.RegisterScreen
-
+import uk.co.aipainapp.presentation.view.AccountScreen
+import uk.co.aipainapp.presentation.view.ConfigScreen
+import uk.co.aipainapp.presentation.view.FavouritesScreen
 
 
 @Composable
@@ -28,5 +31,19 @@ fun AppNavigation() {
         composable(route = Screen.RegisterScreen.route) {
             RegisterScreen(navController = navController)
         }
+        composable(route = Screen.MainScreen.route) {
+            MainScreen(navController = navController)
+        }
+        composable(route = Screen.AccountScreen.route) {
+            AccountScreen(navController = navController)
+        }
+        composable(route = Screen.ConfigScreen.route) {
+            ConfigScreen(navController = navController)
+        }
+        composable(route = Screen.FavouritesScreen.route) {
+            FavouritesScreen(navController = navController)
+        }
+
+
     }
 }

@@ -14,10 +14,8 @@ import uk.co.aipainapp.presentation.navigation.AppNavigation
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.layout.fillMaxSize
 import org.koin.android.ext.koin.androidContext
-import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
 import uk.co.aipainapp.di.appModule
-import org.koin.core.logger.Level
 
 
 class MainActivity : AppCompatActivity() {
